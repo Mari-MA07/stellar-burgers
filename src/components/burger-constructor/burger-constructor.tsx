@@ -1,41 +1,72 @@
 import { BurgerConstructorUI } from '@ui';
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import type { TConstructorIngredient, TConstructorState, TOrder } from '@utils-types';
+import { clearConstructor } from '../../services/constructor/constructorSlice';
+import { fetchFeeds } from '../../services/feed/feedSlice';
+import { createOrder, selectOrder, clearOrder } from '../../services/order/orderSlice';
+import { useSelector, useDispatch } from '../../services/store';
 
-export const BurgerConstructor = (): React.JSX.Element | null => {
-  /** TODO: Взять переменные constructorItems, orderRequest и orderModalData из стора */
-  const constructorItems: TConstructorState = {
-    bun: null,
-    ingredients: [],
-  };
-  const orderRequest = false;
-  const orderModalData: TOrder | null = null;
+import type { TConstructorIngredient } from '@utils-types';
+
+export const BurgerConstructor = (): React.JSX.Element => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const constructorItems = useSelector((state) => state.burgerConstructor);
+  const bun = constructorItems?.bun ?? null;
+  const ingredients = constructorItems?.ingredients ?? [];
+
+  const isAuth = useSelector((state) => state.user.isAuth);
+  const orderRequest = useSelector((state) => state.order?.isLoading) ?? false;
+  const orderModalData = useSelector(selectOrder);
 
   const onOrderClick = (): void => {
-    if (!constructorItems.bun || orderRequest) return;
-    // TODO: Оформить заказ
+    if (!isAuth) {
+      void navigate('/login');
+      return;
+    }
+
+    if (!bun || orderRequest) {
+      return;
+    }
+
+    const ingredientIds = [
+      bun._id,
+      ...ingredients.map((item: TConstructorIngredient) => item._id),
+      bun._id,
+    ];
+
+    void dispatch(createOrder(ingredientIds))
+      .unwrap()
+      .then(() => {
+        void dispatch(clearConstructor());
+        void dispatch(fetchFeeds());
+      })
+      .catch(() => {
+        // Ошибка обрабатывается в Redux
+      });
   };
 
   const closeOrderModal = (): void => {
-    // TODO: Закрыть модальное окно и сбросить заказ
+    void dispatch(clearOrder());
   };
 
   const price = useMemo(
     () =>
-      (constructorItems.bun ? constructorItems.bun.price * 2 : 0) +
-      constructorItems.ingredients.reduce(
-        (s: number, v: TConstructorIngredient) => s + v.price,
+      (bun ? bun.price * 2 : 0) +
+      ingredients.reduce(
+        (sum: number, item: TConstructorIngredient) => sum + item.price,
         0
       ),
-    [constructorItems]
+    [bun, ingredients]
   );
 
   return (
     <BurgerConstructorUI
       price={price}
       orderRequest={orderRequest}
-      constructorItems={constructorItems}
+      constructorItems={{ bun, ingredients }}
       orderModalData={orderModalData}
       onOrderClick={onOrderClick}
       closeOrderModal={closeOrderModal}

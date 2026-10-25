@@ -11,17 +11,12 @@ type TServerResponse<T = unknown> = {
   success: boolean;
 } & T;
 
-/**
- * The API signals failure with a JSON payload rather than an HTTP error, so the
- * payload is wrapped in a real Error before rejecting. The original body is
- * kept in `cause` for debugging.
- */
 const toApiError = (payload: unknown): Error => {
   const message =
     typeof payload === 'object' &&
     payload !== null &&
     'message' in payload &&
-    typeof (payload as { message: unknown }).message === 'string'
+    typeof payload.message === 'string'
       ? (payload as { message: string }).message
       : 'Не удалось выполнить запрос к серверу';
 
@@ -94,7 +89,7 @@ export const getIngredientsApi = (): Promise<TIngredient[]> =>
     });
 
 export const getFeedsApi = (): Promise<TFeedsResponse> =>
-  fetch(`${URL}/orders/all`)
+  fetch(`${URL}/orders/all`, { cache: 'no-store' })
     .then((res) => checkResponse<TFeedsResponse>(res))
     .then((data) => {
       if (data?.success) return data;
@@ -104,6 +99,7 @@ export const getFeedsApi = (): Promise<TFeedsResponse> =>
 export const getOrdersApi = (): Promise<TOrder[]> =>
   fetchWithRefresh<TFeedsResponse>(`${URL}/orders`, {
     method: 'GET',
+    cache: 'no-store',
     headers: {
       'Content-Type': 'application/json;charset=utf-8',
       authorization: getCookie('accessToken'),
