@@ -22,7 +22,7 @@ export const ModalUI = memo(function ModalUI({
         </div>
         <div className={styles.content}>{children}</div>
       </div>
-      <ModalOverlayUI onClick={onClose} />
+      <ModalOverlayUI />
     </>
   );
 });

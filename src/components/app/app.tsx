@@ -33,7 +33,6 @@ const App = (): React.JSX.Element => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Жестко типизируем state, чтобы линтер не ругался на any
   const background = (location.state as { background?: Location })?.background;
 
   useEffect(() => {
@@ -56,7 +55,7 @@ const App = (): React.JSX.Element => {
     <div className={styles.app}>
       <AppHeader />
 
-      <Routes location={background ?? location}>
+      <Routes location={background || location}>
         <Route path="/" element={<ConstructorPage />} />
         <Route path="/feed" element={<Feed />} />
 
